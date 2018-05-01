@@ -1,25 +1,9 @@
 #!/usr/bin/python2
 import re, string
 
-# L_FALSE = ""
-# AXIOM   = ""
+# FORMULA_REGEX = "^\(\((.*)\)(->|\^|v)\((.*)\)\)$"
 
-# NOT_LEFT  = ""
-# NOT_RIGHT = ""
-
-# AND_LEFT  = ""
-# AND_RIGHT = ""
-
-# OR_LEFT  = ""
-# OR_RIGHT = ""
-
-# ARROW_LEFT  = ""
-# ARROW_RIGHT = ""
-
-# ARROW_LEFT  = "((.*),)*((.*)->(.*?))(,(.*))*=>(.*)"
-# ARROW_RIGHT = "(.*)=>((.*),)*(.*)->(.*)(,(.*))*"
-
-FORMULA_REGEX = "^\(\((.*)\)(->|\^|v)\((.*)\)\)$"
+SINGLE_FORMULA = "^\s*(~?[A-Z])\s*(->|\^|v)\s*(~?[A-Z])\s*$"
 
 class sNODE:
   
@@ -40,7 +24,6 @@ class sNODE:
         self.valid = True
     
     def addChild(self, child):
-        print "Adding child"
         self.children.append(child)
         
     def show(self):
@@ -64,7 +47,7 @@ def print_tree(node):
       
         next_node = open_set.pop()
 
-        current_level_string += next_node.show()
+        current_level_string += "       "*len(next_node.children) + next_node.show()
 
         for child in next_node.children:
             next_level_addon += 1
@@ -73,32 +56,160 @@ def print_tree(node):
         upto += 1
         if next_level == upto:
             output_string.append(current_level_string)
-            output_string.append("-"*50)
-            next_level += next_level_addon
+            output_string.append("-"*100)
+            next_level += next_level_addon 
             next_level_addon = 0
             current_level_string = ""
 
     print "\n".join(output_string[::-1])
 
+def check_brackets(formula):
+    outer_count = 0
+    char_count = 0
+    for c in formula:
+        char_count += 1
+        if c == "(":
+            outer_count += 1
+        elif c == ")":
+            outer_count -= 1
+        if outer_count < 0:
+            return False
+    if outer_count != 0:
+        return False
+    return True
+
+
+def get_next_bracket_match(item):
+    if not item.startswith("("):
+        return None
+    outer_count = 0
+    char_count = 0
+    for c in item:
+        char_count += 1
+        if c == "(":
+            outer_count += 1
+        elif c == ")":
+            outer_count -= 1
+        if outer_count == 0:
+            return char_count
+
+
 def get_matches(item):
-    match = re.search(FORMULA_REGEX, item)
+
+    item = item.strip(" ")
+    if item == "":
+        return False
+
+    orig_item = item
+
+    # Remove outer brackets
+    while get_next_bracket_match(item) == len(item):
+        item = item[1:-1]
+        item = item.strip(" ")
+
+    # Attempt to match F op G
+    match = re.search(SINGLE_FORMULA, item)
     if match:
         return match.groups()
-    else:
-        return False
+
+    # Attempt to match (F) op (G)
+    next_b = get_next_bracket_match(item)
+    if next_b is not None:
+        F = item[:next_b].strip(" ")
+        item = item[next_b:].strip(" ")
+
+        if item.startswith("->"):
+            op = "->"
+            item = item[2:].strip(" ")
+        elif item.startswith("^"):
+            op = "^"
+            item = item[1:].strip(" ")
+        elif item.startswith("v"):
+            op = "v"
+            item = item[1:].strip(" ")
+        else:
+            op = ""
+
+        if op != "":
+            next_b = get_next_bracket_match(item)
+            if next_b is not None:
+                G = item[:next_b].strip(" ")
+                item = item[next_b:].strip(" ")
+
+                if item == "":
+                    return F, op, G
+
+    item = orig_item
+
+    # Attempt to match (F) op G
+    next_b = get_next_bracket_match(item)
+    if next_b is not None:
+        F = item[:next_b].strip(" ")
+        item = item[next_b:].strip(" ")
+
+        if item.startswith("->"):
+            op = "->"
+            item = item[2:].strip(" ")
+        elif item.startswith("^"):
+            op = "^"
+            item = item[1:].strip(" ")
+        elif item.startswith("v"):
+            op = "v"
+            item = item[1:].strip(" ")
+        else:
+            op = ""
+
+
+        if op != "":
+            if check_brackets(item):
+                G = item
+                return F, op, G
+
+
+    item = orig_item
+
+
+    # Attempt to match F op (G)
+    F = ""
+    while item != "":
+        if item.startswith("->"):
+            op = "->"
+            item = item[2:].strip(" ")
+            break
+        elif item.startswith("^"):
+            op = "^"
+            item = item[1:].strip(" ")
+            break
+        elif item.startswith("v"):
+            op = "v"
+            item = item[1:].strip(" ")
+            break
+        else:
+            F += item[0]
+            item = item[1:]
+
+    next_b = get_next_bracket_match(item)
+    if next_b is not None:
+        G = item[:next_b].strip(" ")
+        item = item[next_b:].strip(" ")
+
+        if item == "":
+            return F, op, G
+
+    return False
 
         
 def apply_rules(item, side, LHS, RHS):
-    print "Applying rules to {}, {}, {}, {}".format(item, side, LHS, RHS)
-    match = get_matches(item)
-    if match:
-        F, op, G = match
+
+    if item.startswith("~"):
+        if side == 0:
+            return ("~ L", [(LHS, [item[1:]]+RHS)])
+        else:
+            return ("~ R", [([item[1:]]+LHS, RHS)])
     else:
-        if item.startswith("~"):
-            if side == 0:
-                return ("~ L", [(LHS, [item[1:]]+RHS)])
-            else:
-                return ("~ R", [([item[1:]]+LHS, RHS)])
+        match = get_matches(item)
+        if match:
+            F, op, G = match
         else:
             return None
 
@@ -107,7 +218,7 @@ def apply_rules(item, side, LHS, RHS):
         if side == 0:
             return ("-> L", [(LHS, [F]+RHS), ([G]+LHS, RHS)])
         else:
-            ("-> R", [([F]+LHS, [G]+RHS)])
+            return ("-> R", [([F]+LHS, [G]+RHS)])
     if op == "^":
         if side == 0:
             return ("^ L", [([F]+[G]+LHS, RHS)])
@@ -129,9 +240,32 @@ def check_valid(LHS, RHS):
             if item in RHS:
                 return "Ax"
     return None
+
+def remove_brackets_whitespace(node):
+
+    new_lhs = []
+    for item in node.left:
+        item = item.strip(" ")
+        while get_next_bracket_match(item) == len(item):
+            item = item[1:-1]
+            item = item.strip(" ")
+        new_lhs.append(item)
+
+
+    new_rhs = []
+    for item in node.right:
+        item = item.strip(" ")
+        while get_next_bracket_match(item) == len(item):
+            item = item[1:-1]
+            item = item.strip(" ")
+        new_rhs.append(item)
+
+    node.left = new_lhs
+    node.right = new_rhs
   
 def parse_formula(node):
-  
+
+    remove_brackets_whitespace(node)
     LHS = node.left
     RHS = node.right
     
@@ -155,7 +289,6 @@ def parse_formula(node):
         result = apply_rules(item, 1, LHS, RHS[:i] + RHS[i+1:])
         if result is not None:
             node.rule = result[0]
-            print result
             for left, right in result[1]:
                 new_child = sNODE(node, left, right)
                 node.addChild(new_child)
@@ -168,8 +301,6 @@ def parse_node(root, node):
     res = parse_formula(node)
     if res == False:
         root.valid = False
-    print "Children"
-    print node.children
     for child in node.children:
         parse_node(root, child)
     
@@ -179,11 +310,15 @@ def parse_tree(node):
 lhs_inp = raw_input(": ").split(",")
 rhs_inp = raw_input(": ").split(",")
 
-root_node = sNODE(None, lhs_inp, rhs_inp)
+# Check the brackets match
+if check_brackets(lhs_inp) and check_brackets(rhs_inp):
+    root_node = sNODE(None, lhs_inp, rhs_inp)
 
-parse_tree(root_node)
+    parse_tree(root_node)
 
-print "PRINTING TREE"
-print "-"*50
-print_tree(root_node)
-print root_node.valid
+    print "PRINTING TREE"
+    print "-"*50
+    print_tree(root_node)
+    print root_node.valid
+else:
+    print "Mismatched brackets"
