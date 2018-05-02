@@ -32,7 +32,7 @@ In general, the prover will try to match, in the following order (where op is th
 
 ## Examples
 
-For $\neg A \vee \neg B$
+For $$\neg A \vee \neg B$$
 ```
 Hypotheses: ~Av~B
 Conclusion: ~(A^B)
@@ -46,7 +46,7 @@ tree ommited
 Valid: True
 ```
 
-For $(G \rightarrow D)  \rightarrow ((G \rightarrow (F \vee D)) \wedge ((F \wedge G  )\rightarrow D))$
+For $$(G \rightarrow D)  \rightarrow ((G \rightarrow (F \vee D)) \wedge ((F \wedge G  )\rightarrow D))$$
 ```
 Hypotheses: 
 Conclusion: (G->D)  -> ((G->(FvD)) ^ ((F^G  )->D))
@@ -60,7 +60,7 @@ tree ommited
 Valid: True
 ```
 
-For $(G \rightarrow D)  \rightarrow ((G \rightarrow (F \vee D)) \wedge ((F \wedge G  )\rightarrow (\neg F \vee \neg G)))$
+For $$(G \rightarrow D)  \rightarrow ((G \rightarrow (F \vee D)) \wedge ((F \wedge G  )\rightarrow (\neg F \vee \neg G)))$$
 
 ```
 Hypotheses: 
