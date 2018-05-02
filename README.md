@@ -33,7 +33,7 @@ In general, the prover will try to match, in the following order (where op is th
 
 ## Examples
 
-For ~Av~B => ~(A^B)
+For \~Av~B => ~(A^B)
 ```
 Hypotheses: (~A)v(~B)
 Conclusion: ~(A^B)
