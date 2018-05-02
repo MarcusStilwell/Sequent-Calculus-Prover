@@ -1,26 +1,35 @@
 #!/usr/bin/python2
 import re, string
 
+# Regex for generic formula (doesn't work)
 # FORMULA_REGEX = "^\(\((.*)\)(->|\^|v)\((.*)\)\)$"
 
+# Regex for smallest formula possible (literal primitive literal)
 SINGLE_FORMULA = "^\s*(~?[A-Z])\s*(->|\^|v)\s*(~?[A-Z])\s*$"
 
+# Class representing a node
 class sNODE:
   
     def __init__(self, parent, left, right):
         self.parent = parent
 
+        # LHS
         self.left = left
         if self.left == ['']:
             self.left = []
 
+        # RHS
         self.right = right
         if self.right == ['']:
             self.right = []
 
+        # Rule applied
         self.rule = None
+
+        # Children
         self.children = []
 
+        # Used for the root, to specify whether valid
         self.valid = True
     
     def addChild(self, child):
@@ -31,13 +40,15 @@ class sNODE:
 
 def print_tree(node):
     
+    # Use bfs to go level by level
     output_string = []
     
     open_set = set()
+    open_set.add(node)
     
     root = node
-    open_set.add(node)
 
+    # Use to keep track of level
     upto = 0
     next_level = 1
     next_level_addon = 0
@@ -63,6 +74,7 @@ def print_tree(node):
 
     print "\n".join(output_string[::-1])
 
+# Check if brackets match
 def check_brackets(formula):
     outer_count = 0
     char_count = 0
@@ -78,7 +90,7 @@ def check_brackets(formula):
         return False
     return True
 
-
+# Gets the next matching set of brackets
 def get_next_bracket_match(item):
     if not item.startswith("("):
         return None
@@ -96,6 +108,7 @@ def get_next_bracket_match(item):
 
 def get_matches(item):
 
+    # Make sure the item exists
     item = item.strip(" ")
     if item == "":
         return False
@@ -201,19 +214,21 @@ def get_matches(item):
         
 def apply_rules(item, side, LHS, RHS):
 
+    # Start with ~ rule
     if item.startswith("~"):
         if side == 0:
             return ("~ L", [(LHS, [item[1:]]+RHS)])
         else:
             return ("~ R", [([item[1:]]+LHS, RHS)])
     else:
+        # Try get F op G
         match = get_matches(item)
         if match:
             F, op, G = match
         else:
             return None
 
-    
+    # Apply the rules, returning rule used and LHS/RHS
     if op == "->":
         if side == 0:
             return ("-> L", [(LHS, [F]+RHS), ([G]+LHS, RHS)])
@@ -231,7 +246,8 @@ def apply_rules(item, side, LHS, RHS):
             return ("v R", [(LHS, [F]+[G]+RHS)])
     
     return None
-        
+
+# Check if valid
 def check_valid(LHS, RHS):
     if "!" in LHS:
         return "!L"
@@ -241,6 +257,7 @@ def check_valid(LHS, RHS):
                 return "Ax"
     return None
 
+# Remove all brackets and whitespace in all items in LHS and RHS
 def remove_brackets_whitespace(node):
 
     new_lhs = []
@@ -262,18 +279,22 @@ def remove_brackets_whitespace(node):
 
     node.left = new_lhs
     node.right = new_rhs
-  
+
+# Find a rule to apply to a node
 def parse_formula(node):
 
+    # Remove brackets and whitespace first
     remove_brackets_whitespace(node)
     LHS = node.left
     RHS = node.right
     
+    # Check if already valid
     is_valid = check_valid(LHS, RHS)
     if is_valid:
         node.rule = is_valid
         return True
     
+    # Go through the LHS
     for i in xrange(len(LHS)):
         item = LHS[i]
         result = apply_rules(item, 0, LHS[:i] + LHS[i+1:], RHS)
@@ -284,6 +305,7 @@ def parse_formula(node):
                 node.addChild(new_child)
             return True
     
+    # Go through the RHS
     for i in xrange(len(RHS)):
         item = RHS[i]
         result = apply_rules(item, 1, LHS, RHS[:i] + RHS[i+1:])
@@ -297,6 +319,7 @@ def parse_formula(node):
     # No more rules can be applied and is not valid
     return False
 
+# Parse a node
 def parse_node(root, node):
     res = parse_formula(node)
     if res == False:
@@ -304,21 +327,25 @@ def parse_node(root, node):
     for child in node.children:
         parse_node(root, child)
     
+# Parse a tree (treats the node as the root)
 def parse_tree(node):
     parse_node(node, node)
 
-lhs_inp = raw_input(": ").split(",")
-rhs_inp = raw_input(": ").split(",")
+# Grab the input
+lhs_inp = raw_input("Hypotheses: ").split(",")
+rhs_inp = raw_input("Conclusion: ").split(",")
 
 # Check the brackets match
 if check_brackets(lhs_inp) and check_brackets(rhs_inp):
+
+    # Create the tree
     root_node = sNODE(None, lhs_inp, rhs_inp)
 
     parse_tree(root_node)
 
-    print "PRINTING TREE"
-    print "-"*50
+    print "Printing tree"
     print_tree(root_node)
-    print root_node.valid
+    print ""
+    print "Valid: {}".format(root_node.valid)
 else:
     print "Mismatched brackets"
