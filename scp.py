@@ -5,7 +5,7 @@ import re, string
 # FORMULA_REGEX = "^\(\((.*)\)(->|\^|v)\((.*)\)\)$"
 
 # Regex for smallest formula possible (literal primitive literal)
-SINGLE_FORMULA = "^\s*(~?[A-Z])\s*(->|\^|v)\s*(~?[A-Z])\s*$"
+SINGLE_FORMULA = "^\s*(~?[A-Z!])\s*(->|\^|v)\s*(~?[A-Z!])\s*$"
 
 # Class representing a node
 class sNODE:
