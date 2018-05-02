@@ -9,6 +9,11 @@ Symbols used are
 - -> for impication
 - A-Z for literals
 
+To use, simply enter
+```
+python2 scp.py
+```
+
 When entering formulas, use of brackets is highly advised, as no order of operations are enforced. Formulas where more than 2 literals are used require brackets, ie.
 
 ```AvBvC ```
